@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hidden Football AR Table Game</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --panel-bg: rgba(22, 27, 34, 0.85);
+            --neon-green: #39ff14;
+            --neon-red: #ff3131;
+            --neon-blue: #00e5ff;
+            --text-main: #f0f6fc;
+            --grass-dark: #1b4d3e;
+            --grass-light: #22644d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+        }
+
+        /* App container forces landscape on mobile if possible, scales responsibly */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Main Menu / Setup UI Styling */
+        #menu-screen {
+            background: radial-gradient(circle at center, #1f2937 0%, #0b0f19 100%);
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, var(--neon-green), var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin: 12px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: var(--neon-green);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #2ce20f;
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+
+        .btn-secondary {
+            background: var(--neon-blue);
+            color: #000;
+        }
+
+        .btn-secondary:hover {
+            background: #00ccd4;
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        .input-group {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 1.1rem;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+        }
+
+        /* Referee View Styles */
+        #referee-screen {
+            background: #000;
+            padding: 0;
+        }
+
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #referee-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .referee-ui-layer {
+            position: absolute;
+            z-index: 3;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+            pointer-events: none;
+        }
+
+        .interactive-element {
+            pointer-events: auto;
+        }
+
+        /* Player Screen View (The Grass Arena) */
+        #player-screen {
+            background: repeating-linear-gradient(
+                90deg,
+                var(--grass-dark),
+                var(--grass-dark) 40px,
+                var(--grass-light) 40px,
+                var(--grass-light) 80px
+            );
+            padding: 0;
+            position: relative;
+        }
+
+        /* Restricted Alert Overlay */
+        #restricted-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 49, 49, 0.4);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            animation: pulse-red 1s infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes pulse-red {
+            from { background-color: rgba(255, 49, 49, 0.3); }
+            to { background-color: rgba(255, 49, 49, 0.7); }
+        }
+
+        .warning-banner {
+            background: #000;
+            color: var(--neon-red);
+            padding: 20px 40px;
+            font-size: 2rem;
+            font-weight: bold;
+            border: 3px solid var(--neon-red);
+            border-radius: 8px;
+            box-shadow: 0 0 30px var(--neon-red);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        /* Local Player Avatar Renderer */
+        #player-rendering-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+        }
+
+        /* Action Feedback Screens */
+        .fullscreen-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 90;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        #ball-found-effect {
+            background: rgba(57, 255, 20, 0.2);
+        }
+
+        #goal-effect {
+            background: rgba(0, 229, 255, 0.3);
+        }
+
+        .effect-text {
+            font-size: 3.5rem;
+            font-weight: 900;
+            text-shadow: 0 0 20px currentColor;
+            animation: pop-up 0.5s ease out;
+        }
+
+        @keyframes pop-up {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        /* Floating Info Panels */
+        .hud-panel {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Calibration Controls overlay for Ref Camera */
+        .calibration-box {
+            position: absolute;
+            border: 2px dashed #fff;
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .calibration-box::before {
+            content: 'PLACE BALL HERE & TAP';
+            font-size: 0.75rem;
+            color: #fff;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* Touch controller stick zone for simulation / fine tuning */
+        #touch-joystick-zone {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        #joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        /* Utility classes */
+        .flex-row-between {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <div id="menu-screen" class="screen active">
+        <div class="glass-panel">
+            <h1>Hidden Football AR</h1>
+            <p style="color: #8b949e; margin-bottom: 20px; font-size: 0.9rem;">Serverless Real-Time P2P Physical Table System</p>
+            
+            <div class="input-group">
+                <label for="username-input">Player Nickname</label>
+                <input type="text" id="username-input" value="Striker_X" maxlength="12">
+            </div>
+
+            <div class="input-group">
+                <label for="room-input">Room Join Code</label>
+                <input type="text" id="room-input" value="REFCAM" maxlength="8">
+            </div>
+
+            <div style="margin-top: 30px;">
+                <button id="btn-join-player" class="btn btn-primary">Join as Player Device</button>
+                <button id="btn-host-ref" class="btn btn-secondary">Setup Referee Camera</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="referee-screen" class="screen">
+        <video id="camera-feed" autoplay playsinline muted></video>
+        <canvas id="referee-overlay"></canvas>
+        
+        <div class="referee-ui-layer">
+            <div class="flex-row-between">
+                <div class="hud-panel" id="ref-room-display">ROOM: --</div>
+                <div class="hud-panel" id="ref-status-display" style="color: var(--neon-green);">TRACKING ACTIVE</div>
+            </div>
+            
+            <div class="calibration-box interactive-element" id="calibration-trigger"></div>
+
+            <div class="flex-row-between">
+                <button id="btn-ref-reset-ball" class="btn btn-secondary interactive-element" style="width: auto; padding: 10px 20px; margin: 0;">Reset Ball Position</button>
+                <button class="btn btn-primary interactive-element exit-to-menu-btn" style="width: auto; padding: 10px 20px; margin: 0; background: #333; color: #fff;">Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="player-screen" class="screen">
+        <canvas id="player-rendering-canvas"></canvas>
+        
+        <div id="restricted-overlay">
+            <div class="warning-banner">RESTRICTED ZONE!</div>
+            <p style="color: #fff; margin-top: 10px; font-weight: bold; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px;">RETREAT TO YOUR OWN HALF</p>
+        </div>
+
+        <div id="ball-found-effect" class="fullscreen-effect">
+            <div class="effect-text" style="color: var(--neon-green);">BALL FOUND</div>
+        </div>
+
+        <div id="goal-effect" class="fullscreen-effect">
+            <div class="effect-text" style="color: var(--neon-blue);">GOAL!!!</div>
+        </div>
+
+        <div id="touch-joystick-zone" class="interactive-element">
+            <div id="joystick-knob"></div>
+        </div>
+
+        <div class="referee-ui-layer">
+            <div class="flex-row-between">
+                <div class="hud-panel" id="player-status-hud">SEARCHING FOR BALL...</div>
+                <div class="hud-panel" id="player-possession-hud" style="color: #fff; border-color: #555;">NO POSSESSION</div>
+            </div>
+            
+            <div style="text-align: center; width: 100%;">
+                <div id="swipe-tip" style="display:none; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 8px; display: inline-block; font-size: 0.85rem; border: 1px solid var(--neon-green);">
+                    SWIPE UP FAST TOWARDS GOAL TO SHOOT / PASS
+                </div>
+            </div>
+
+            <div class="flex-row-between">
+                <div class="hud-panel" id="player-coords-hud">X: 0.00 | Y: 0.00</div>
+                <button class="btn interactive-element exit-to-menu-btn" style="width: auto; padding: 8px 16px; margin: 0; background: rgba(255,255,255,0.1); color: #fff; border-radius: 20px; font-size: 0.8rem;">Leave Match</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /**
+     * Hidden Football AR - Complete Unified System Core
+     */
+
+    // Configuration Architecture Constants
+    const FIELD_ASPECT_RATIO = 1.5; // Y length / X width physical matrix aspect
+    const PROXIMITY_THRESHOLD = 0.08; // Normalized sweep-capture distance factor for ball discovery
+    const RESTRICTED_ZONE_Y_LIMIT = 0.25; // Top 1/4th zone restricted bounding box parameter
+
+    // Global App Application State Context 
+    let state = {
+        role: null,            // 'referee' | 'player'
+        roomCode: '',
+        username: '',
+        peer: null,
+        connection: null,      // Active peer data communication stream context
+        connectedPlayers: {},  // Map tracking real-time client endpoints
+        
+        // Universal Simulation Coordinates Matrix (Normalized 0.00 to 1.00 relative mapping)
+        ball: { x: 0.5, y: 0.5, vx: 0, vy: 0, possessedBy: null },
+        localPlayer: { id: '', name: '', x: 0.5, y: 0.6, team: 'A', inRestrictedZone: false },
+        
+        // Computer Vision Engine Properties
+        targetColor: { r: 0, g: 0, b: 0 }, // Dynamically calibrated color vector array
+        isColorCalibrated: false
+    };
+
+    // DOM Elements Binding Registry
+    const screens = {
+        menu: document.getElementById('menu-screen'),
+        referee: document.getElementById('referee-screen'),
+        player: document.getElementById('player-screen')
+    };
+
+    // Setup Main Application Screen Route Initializations
+    document.getElementById('btn-host-ref').addEventListener('click', () => initializeSession('referee'));
+    document.getElementById('btn-join-player').addEventListener('click', () => initializeSession('player'));
+    
+    document.querySelectorAll('.exit-to-menu-btn').forEach(btn => {
+        btn.addEventListener('click', () => location.reload());
+    });
+
+    /**
+     * Global Network Orchestration Engine (PeerJS Implementation Setup)
+     */
+    function initializeSession(chosenRole) {
+        state.role = chosenRole;
+        state.roomCode = document.getElementById('room-input').value.trim().toUpperCase();
+        state.username = document.getElementById('username-input').value.trim();
+
+        if(!state.roomCode) { alert('Please enter a valid Room Code'); return; }
+        if(!state.username && state.role === 'player') { alert('Please choose a valid Nickname'); return; }
+
+        switchActiveScreen(state.role);
+
+        if (state.role === 'referee') {
+            // Establish host broker using room-code suffix identity matrix
+            state.peer = new Peer(`HFB-ROOM-${state.roomCode}`);
+            setupRefereeNetworkListeners();
+            initRefereeHardwareCamera();
+        } else {
+            state.peer = new Peer(); // Auto generated unique transient peer identifier hash
+            setupPlayerNetworkListeners();
+        }
+    }
+
+    function switchActiveScreen(role) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        screens[role].classList.add('active');
+        // Handle programmatic mobile system interface enhancements
+        try { if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } catch(e){}
+    }
+
+    /**
+     * REFEREE HOST NETWORK AND LOGIC ENGINE
+     */
+    function setupRefereeNetworkListeners() {
+        document.getElementById('ref-room-display').innerText = `ROOM: ${state.roomCode}`;
+        
+        state.peer.on('open', (id) => {
+            console.log('Referee Node Host active with Peer Token ID:', id);
+        });
+
+        state.peer.on('connection', (conn) => {
+            conn.on('data', (data) => {
+                if (data.type === 'JOIN') {
+                    state.connectedPlayers[conn.peer] = {
+                        id: conn.peer,
+                        name: data.name,
+                        x: 0.5,
+                        y: 0.7,
+                        conn: conn
+                    };
+                    console.log(`Player entered network arena: ${data.name}`);
+                }
+                if (data.type === 'PLAYER_UPDATE') {
+                    if (state.connectedPlayers[conn.peer]) {
+                        state.connectedPlayers[conn.peer].x = data.x;
+                        state.connectedPlayers[conn.peer].y = data.y;
+                    }
+                }
+                if (data.type === 'ACTION_SWIPE') {
+                    handlePlayerSwipeAction(conn.peer, data.vx, data.vy);
+                }
+            });
+
+            conn.on('close', () => {
+                delete state.connectedPlayers[conn.peer];
+                if(state.ball.possessedBy === conn.peer) state.ball.possessedBy = null;
+            });
+        });
+
+        // Run primary synchronized transactional update dispatch loops (30Hz)
+        setInterval(processRefereeServerPhysicsLoop, 33);
+    }
+
+    function broadcastGameState() {
+        let playersDataSummary = [];
+        for (let pId in state.connectedPlayers) {
+            playersDataSummary.push({
+                id: pId,
+                name: state.connectedPlayers[pId].name,
+                x: state.connectedPlayers[pId].x,
+                y: state.connectedPlayers[pId].y
+            });
+        }
+
+        let transmissionPackage = {
+            type: 'STATE_SYNC',
+            ball: {
+                // Positional elements are explicitly cleared/masked dynamically per requirements
+                possessedBy: state.ball.possessedBy
+            },
+            players: playersDataSummary
+        };
+
+        // If a specific player holds internal lock possession, update precise localized status metrics
+        for (let pId in state.connectedPlayers) {
+            transmissionPackage.ball.isLocalPlayerPossessed = (state.ball.possessedBy === pId);
+            // Append target ball tracking visibility coordinates safely only under verified proximity possession
+            if (state.ball.possessedBy === pId) {
+                transmissionPackage.ball.rawX = state.ball.x;
+                transmissionPackage.ball.rawY = state.ball.y;
+            }
+            state.connectedPlayers[pId].conn.send(transmissionPackage);
+        }
+    }
+
+    function handlePlayerSwipeAction(playerId, vx, vy) {
+        if (state.ball.possessedBy === playerId) {
+            state.ball.possessedBy = null;
+            state.ball.vx = vx * 0.15; // Calibration impulse scalers
+            state.ball.vy = vy * 0.15;
+        }
+    }
+
+    function processRefereeServerPhysicsLoop() {
+        // Evaluate dynamic physics simulation properties for the hidden ball vectors
+        if (state.ball.possessedBy) {
+            // Ball position is anchored securely to the active controlling player node footprint
+            let hostOwner = state.connectedPlayers[state.ball.possessedBy];
+            if (hostOwner) {
+                state.ball.x = hostOwner.x;
+                state.ball.y = hostOwner.y;
+                state.ball.vx = 0;
+                state.ball.vy = 0;
+            }
+        } else {
+            // Implement simple kinematic momentum mechanics
+            state.ball.x += state.ball.vx;
+            state.ball.y += state.ball.vy;
+            state.ball.vx *= 0.92; // Friction vector coefficients
+            state.ball.vy *= 0.92;
+
+            // Bounding collision checks mapping field layouts safely
+            if (state.ball.x < 0) { state.ball.x = 0; state.ball.vx *= -1; }
+            if (state.ball.x > 1) { state.ball.x = 1; state.ball.vx *= -1; }
+            
+            // Goal scoring logic parameters (Goal zones located top center and bottom center regions)
+            if (state.ball.y < 0) {
+                if (state.ball.x > 0.35 && state.ball.x < 0.65) {
+                    triggerGlobalGoalCelebration();
+                } else {
+                    state.ball.y = 0; state.ball.vy *= -1;
+                }
+            }
+            if (state.ball.y > 1) {
+                if (state.ball.x > 0.35 && state.ball.x < 0.65) {
+                    triggerGlobalGoalCelebration();
+                } else {
+                    state.ball.y = 1; state.ball.vy *= -1;
+                }
+            }
+
+            // Proximity validation scan matrix targeting non-possessed interaction sweeps
+            for (let pId in state.connectedPlayers) {
+                let p = state.connectedPlayers[pId];
+                // Prevent capture parameters from evaluating inside restricted zones
+                if (p.y < RESTRICTED_ZONE_Y_LIMIT) continue; 
+
+                let dx = state.ball.x - p.x;
+                let dy = state.ball.y - p.y;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+
+                if (distance < PROXIMITY_THRESHOLD) {
+                    state.ball.possessedBy = pId;
+                    // Trigger remote player notification trigger directly
+                    p.conn.send({ type: 'BALL_FOUND_TRIGGER' });
+                    break;
+                }
+            }
+        }
+
+        broadcastGameState();
+        renderRefereeDiagnosticsOverlay();
+    }
+
+    function triggerGlobalGoalCelebration() {
+        state.ball.x = 0.5;
+        state.ball.y = 0.5;
+        state.ball.vx = 0;
+        state.ball.vy = 0;
+        state.ball.possessedBy = null;
+
+        for (let pId in state.connectedPlayers) {
+            state.connectedPlayers[pId].conn.send({ type: 'GOAL_CELEBRATION' });
+        }
+    }
+
+    /**
+     * REFEREE COMPUTER VISION EMBEDDED BALL TRACKING SUB-ENGINE
+     */
+    function initRefereeHardwareCamera() {
+        const video = document.getElementById('camera-feed');
+        
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: 640, height: 480 },
+            audio: false
+        })
+        .then(stream => {
+            video.srcObject = stream;
+            video.setAttribute('playsinline', true);
+            video.play();
+            setupComputerVisionAnalysisLoop();
+        })
+        .catch(err => {
+            alert('Camera authorization failed. Fallback operational mode initiated.', err);
+            setupFallbackRefereeControls();
+        });
+
+        // Register interactive color picker configuration setup target
+        document.getElementById('calibration-trigger').addEventListener('click', (e) => {
+            calibrateTargetTrackingColor(video);
+        });
+
+        document.getElementById('btn-ref-reset-ball').addEventListener('click', () => {
+            state.ball.x = 0.5;
+            state.ball.y = 0.5;
+            state.ball.vx = 0;
+            state.ball.vy = 0;
+            state.ball.possessedBy = null;
+        });
+    }
+
+    function calibrateTargetTrackingColor(video) {
+        const hiddenCanvas = document.createElement('canvas');
+        hiddenCanvas.width = video.videoWidth || 640;
+        hiddenCanvas.height = video.videoHeight || 480;
+        const ctx = hiddenCanvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        
+        // Sampling central vector coordinates metrics block
+        const centerX = Math.floor(hiddenCanvas.width / 2);
+        const centerY = Math.floor(hiddenCanvas.height / 2);
+        const pixelData = ctx.getImageData(centerX, centerY, 1, 1).data;
+        
+        state.targetColor.r = pixelData[0];
+        state.targetColor.g = pixelData[1];
+        state.targetColor.b = pixelData[2];
+        state.isColorCalibrated = true;
+        
+        const statusDisplay = document.getElementById('ref-status-display');
+        statusDisplay.innerText = `CALIBRATED: RGB(${state.targetColor.r},${state.targetColor.g},${state.targetColor.b})`;
+        statusDisplay.style.color = varName('--neon-blue');
+    }
+
+    function setupComputerVisionAnalysisLoop() {
+        const video = document.getElementById('camera-feed');
+        const overlayCanvas = document.getElementById('referee-overlay');
+        const ctx = overlayCanvas.getContext('2d');
+
+        function processFrameRoutine() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                if (overlayCanvas.width !== video.videoWidth) {
+                    overlayCanvas.width = video.videoWidth;
+                    overlayCanvas.height = video.videoHeight;
+                }
+
+                ctx.drawImage(video, 0, 0, overlayCanvas.width, overlayCanvas.height);
+                const frameData = ctx.getImageData(0, 0, overlayCanvas.width, overlayCanvas.height);
+                const pixels = frameData.data;
+
+                // Simple high-speed pixel analysis loop looking for target calibrated color signatures
+                let matchingPixelsSumX = 0;
+                let matchingPixelsSumY = 0;
+                let matchingCount = 0;
+
+                // Threshold variance allowance values
+                const colorTolerance = 45; 
+
+                if (state.isColorCalibrated) {
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        let r = pixels[i];
+                        let g = pixels[i+1];
+                        let b = pixels[i+2];
+
+                        let rDiff = Math.abs(r - state.targetColor.r);
+                        let gDiff = Math.abs(g - state.targetColor.g);
+                        let bDiff = Math.abs(b - state.targetColor.b);
+
+                        if (rDiff < colorTolerance && gDiff < colorTolerance && bDiff < colorTolerance) {
+                            let pixelIndex = i / 4;
+                            let y = Math.floor(pixelIndex / overlayCanvas.width);
+                            let x = pixelIndex % overlayCanvas.width;
+
+                            matchingPixelsSumX += x;
+                            matchingPixelsSumY += y;
+                            matchingCount++;
+                        }
+                    }
+
+                    // Compute physical spatial centroids mapping relative coordinates
+                    if (matchingCount > 15 && !state.ball.possessedBy) { 
+                        let targetCentroidX = (matchingPixelsSumX / matchingCount) / overlayCanvas.width;
+                        let targetCentroidY = (matchingPixelsSumY / matchingCount) / overlayCanvas.height;
+                        
+                        // Smooth coordinate shifts using soft-pass filtering models
+                        state.ball.x = state.ball.x * 0.4 + targetCentroidX * 0.6;
+                        state.ball.y = state.ball.y * 0.4 + targetCentroidY * 0.6;
+                    }
+                }
+            }
+            requestAnimationFrame(processFrameRoutine);
+        }
+        requestAnimationFrame(processFrameRoutine);
+    }
+
+    function renderRefereeDiagnosticsOverlay() {
+        const canvas = document.getElementById('referee-overlay');
+        const ctx = canvas.getContext('2d');
+        if(!canvas.width) return;
+
+        // Clear layout canvas space frame safely
+        ctx.clearRect(0,0, canvas.width, canvas.height);
+
+        // Render virtual boundary definitions tracking lines overlay
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+        // Render Restricted Zone Threshold Line (Top 1/4)
+        ctx.strokeStyle = '#ff3131';
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
+        ctx.lineTo(canvas.width, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
+        ctx.stroke();
+
+        // Render Calculated Position Matrix Signatures (Hidden to players, diagnostic to Ref)
+        ctx.fillStyle = '#39ff14';
+        ctx.beginPath();
+        ctx.arc(state.ball.x * canvas.width, state.ball.y * canvas.height, 12, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Render Virtual Player footprints inside field workspace
+        for (let id in state.connectedPlayers) {
+            let p = state.connectedPlayers[id];
+            ctx.fillStyle = (state.ball.possessedBy === id) ? '#00e5ff' : '#ffffff';
+            ctx.beginPath();
+            ctx.arc(p.x * canvas.width, p.y * canvas.height, 16, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText(p.name.substring(0,4), (p.x * canvas.width) - 10, (p.y * canvas.height) + 4);
+        }
+    }
+
+    function setupFallbackRefereeControls() {
+        console.log("Setting up manual/mouse simulated tracking coordinates engine fallback layer.");
+        const canvas = document.getElementById('referee-overlay');
+        canvas.addEventListener('mousemove', (e) => {
+            if(!state.ball.possessedBy) {
+                const rect = canvas.getBoundingClientRect();
+                state.ball.x = (e.clientX - rect.left) / rect.width;
+                state.ball.y = (e.clientY - rect.top) / rect.height;
+            }
+        });
+    }
+
+    /**
+     * PLAYER COMPONENT CLIENT MODULE LOGIC
+     */
+    let touchControlJoystickState = { active: false, startX: 0, startY: 0, curX: 0, curY: 0 };
+    let swipeCaptureState = { startX: 0, startY: 0, startTime: 0 };
+
+    function setupPlayerNetworkListeners() {
+        state.connection = state.peer.connect(`HFB-ROOM-${state.roomCode}`);
+
+        state.connection.on('open', () => {
+            console.log('Established secure link tunnel pipeline with Host Referee.');
+            state.connection.send({
+                type: 'JOIN',
+                name: state.username
+            });
+            initializePlayerHardwareSystems();
+        });
+
+        state.connection.on('data', (data) => {
+            if (data.type === 'STATE_SYNC') {
+                processServerStateSynchronization(data);
+            }
+            if (data.type === 'BALL_FOUND_TRIGGER') {
+                triggerLocalBallFoundEffects();
+            }
+            if (data.type === 'GOAL_CELEBRATION') {
+                triggerLocalGoalAnimationEffects();
+            }
+        });
+
+        state.connection.on('close', () => {
+            alert('Lost sync connection pipeline stream to game room host session.');
+            location.reload();
+        });
+    }
+
+    function initializePlayerHardwareSystems() {
+        // Core Motion Tracking Interface Bindings (Gyro / Accelerometer Handling)
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', handleDeviceOrientationTrackingData, true);
+        }
+
+        // Initialize Primary Interactive Canvas Graphics Interface Layout
+        setupPlayerRenderingEngine();
+        
+        // Connect Touch Interaction Interface Systems Sub-layers
+        setupTouchControllerJoystickInputControls();
+        setupGlobalSwipeGestureRecognitionEngine();
+    }
+
+    function handleDeviceOrientationTrackingData(event) {
+        // Translate Tilt inputs safely down into sub-incremental position shift operations
+        let tiltX = event.gamma; // Range [-90, 90]
+        let tiltY = event.beta;  // Range [-180, 180]
+
+        if (tiltX !== null && tiltY !== null) {
+            // Apply scale sensitivity translation modifications mapping adjustments securely
+            let dx = (tiltX / 90) * 0.008;
+            let dy = ((tiltY - 45) / 90) * 0.008; // 45-degree default device angle reference matrix offsets
+
+            updateLocalPlayerCoordinates(state.localPlayer.x + dx, state.localPlayer.y + dy);
+        }
+    }
+
+    function setupTouchControllerJoystickInputControls() {
+        const zone = document.getElementById('touch-joystick-zone');
+        const knob = document.getElementById('joystick-knob');
+
+        zone.addEventListener('touchstart', (e) => {
+            touchControlJoystickState.active = true;
+            let t = e.touches[0];
+            touchControlJoystickState.startX = t.clientX;
+            touchControlJoystickState.startY = t.clientY;
+        }, {passive: true});
+
+        window.addEventListener('touchmove', (e) => {
+            if (!touchControlJoystickState.active) return;
+            let t = e.touches[0];
+            
+            let dx = t.clientX - touchControlJoystickState.startX;
+            let dy = t.clientY - touchControlJoystickState.startY;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Constrain knob displacement within visual radius bounds parameters safely
+            if(dist > 50) {
+                dx = (dx / dist) * 50;
+                dy = (dy / dist) * 50;
+            }
+
+            knob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            // Convert manual joystick displacement outputs directly to positional transformations vectors
+            let moveSpeedMultiplierX = (dx / 50) * 0.012;
+            let moveSpeedMultiplierY = (dy / 50) * 0.012;
+
+            updateLocalPlayerCoordinates(state.localPlayer.x + moveSpeedMultiplierX, state.localPlayer.y + moveSpeedMultiplierY);
+        }, {passive: true});
+
+        window.addEventListener('touchend', () => {
+            touchControlJoystickState.active = false;
+            knob.style.transform = 'translate(0px, 0px)';
+        });
+    }
+
+    function setupGlobalSwipeGestureRecognitionEngine() {
+        window.addEventListener('touchstart', (e) => {
+            // Bypass processing overlays intersections dynamically
+            if(e.target.closest('#touch-joystick-zone')) return;
+            
+            let t = e.touches[0];
+            swipeCaptureState.startX = t.clientX;
+            swipeCaptureState.startY = t.clientY;
+            swipeCaptureState.startTime = performance.now();
+        }, {passive: true});
+
+        window.addEventListener('touchend', (e) => {
+            if(e.target.closest('#touch-joystick-zone')) return;
+
+            let t = e.changedTouches[0];
+            let dx = t.clientX - swipeCaptureState.startX;
+            let dy = t.clientY - swipeCaptureState.startY;
+            let dt = performance.now() - swipeCaptureState.startTime;
+
+            // Analyze displacement and velocity to categorize valid swipe action requests
+            if (dt < 350 && Math.sqrt(dx*dx + dy*dy) > 60) {
+                let velocityVectorX = dx / dt;
+                let velocityVectorY = dy / dt;
+
+                // Push gesture dataset transactions packet structure directly up to host execution pipeline
+                if (state.connection && state.connection.open) {
+                    state.connection.send({
+                        type: 'ACTION_SWIPE',
+                        vx: velocityVectorX,
+                        vy: velocityVectorY
+                    });
+                }
+            }
+        });
+    }
+
+    function updateLocalPlayerCoordinates(targetX, targetY) {
+        // Clamp system constraints definitions values explicitly checking array boundaries
+        state.localPlayer.x = Math.max(0, Math.min(1, targetX));
+        state.localPlayer.y = Math.max(0, Math.min(1, targetY));
+
+        // Evaluate Restricted Area conditions parameters
+        // Rule: Top 1/4th of the operational coordinate fields map to restricted zone access limitations
+        if (state.localPlayer.y < RESTRICTED_ZONE_Y_LIMIT) {
+            if (!state.localPlayer.inRestrictedZone) {
+                state.localPlayer.inRestrictedZone = true;
+                document.getElementById('restricted-overlay').style.display = 'flex';
+                // Trigger tactile physical system failure feedbacks instantly via core APIs
+                if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            }
+        } else {
+            if (state.localPlayer.inRestrictedZone) {
+                state.localPlayer.inRestrictedZone = false;
+                document.getElementById('restricted-overlay').style.display = 'none';
+            }
+        }
+
+        // Output current layout tracking details metrics directly down into local telemetry elements UI
+        document.getElementById('player-coords-hud').innerText = `X: ${state.localPlayer.x.toFixed(2)} | Y: ${state.localPlayer.y.toFixed(2)}`;
+
+        // Dispatch updated transformation logs up to central broker node pipelines safely
+        if (state.connection && state.connection.open && !state.localPlayer.inRestrictedZone) {
+            state.connection.send({
+                type: 'PLAYER_UPDATE',
+                x: state.localPlayer.x,
+                y: state.localPlayer.y
+            });
+        }
+    }
+
+    function processServerStateSynchronization(packet) {
+        // Process transactional updates derived down from remote referee servers runtime instances
+        let matchBallState = packet.ball;
+        
+        const statusHud = document.getElementById('player-status-hud');
+        const possessionHud = document.getElementById('player-possession-hud');
+        const swipeTip = document.getElementById('swipe-tip');
+
+        if (matchBallState.possessedBy) {
+            if (matchBallState.isLocalPlayerPossessed) {
+                statusHud.innerText = "YOU CONTROL THE BALL!";
+                statusHud.style.color = varName('--neon-green');
+                possessionHud.innerText = "POSSESSION ACTIVE";
+                possessionHud.style.borderColor = varName('--neon-green');
+                swipeTip.style.display = 'inline-block';
+                
+                // Cache localized actual hidden ball state configurations dynamically
+                state.ball.x = matchBallState.rawX;
+                state.ball.y = matchBallState.rawY;
+            } else {
+                statusHud.innerText = "BALL POSSESSED BY OPPONENT";
+                statusHud.style.color = varName('--neon-red');
+                possessionHud.innerText = "NO POSSESSION";
+                possessionHud.style.borderColor = '#555';
+                swipeTip.style.display = 'none';
+            }
+        } else {
+            statusHud.innerText = "SEARCHING PHYSICAL FIELD FOR HIDDEN BALL...";
+            statusHud.style.color = '#fff';
+            possessionHud.innerText = "NO POSSESSION";
+            possessionHud.style.borderColor = '#555';
+            swipeTip.style.display = 'none';
+        }
+
+        // Cache full arrays maps context snapshots tracking synchronized remote identities
+        state.connectedPlayers = packet.players;
+    }
+
+    function triggerLocalBallFoundEffects() {
+        if(navigator.vibrate) navigator.vibrate(300);
+        const fx = document.getElementById('ball-found-effect');
+        fx.style.display = 'flex';
+        setTimeout(() => fx.style.display = 'none', 1200);
+    }
+
+    function triggerLocalGoalAnimationEffects() {
+        if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
+        const fx = document.getElementById('goal-effect');
+        fx.style.display = 'flex';
+        setTimeout(() => fx.style.display = 'none', 2500);
+    }
+
+    function setupPlayerRenderingEngine() {
+        const canvas = document.getElementById('player-rendering-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawLoopFrame() {
+            // Keep drawing surface coordinates correctly configured matching client displays parameters definitions
+            if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+
+            // Render Field Outlines Graphics Layer
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 4;
+            // Draw Penalty Box lines bounds
+            ctx.strokeRect(canvas.width * 0.25, 0, canvas.width * 0.5, canvas.height * 0.18);
+            ctx.strokeRect(canvas.width * 0.25, canvas.height * 0.82, canvas.width * 0.5, canvas.height * 0.18);
+            
+            // Draw Center Ring Line layout parameters
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, canvas.height/2, canvas.width * 0.15, 0, 2*Math.PI);
+            ctx.stroke();
+
+            // Render Local Client Player Indicator Footprint Node elements
+            const localPixelX = state.localPlayer.x * canvas.width;
+            const localPixelY = state.localPlayer.y * canvas.height;
+
+            // Draw Restricted Boundary Zone Guidelines Indicator across screen workspace space
+            ctx.fillStyle = 'rgba(255, 49, 49, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
+            ctx.strokeStyle = 'rgba(255, 49, 49, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
+            ctx.lineTo(canvas.width, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
+            ctx.stroke();
+
+            // Render All Synced External Connected Field Peer Elements Models
+            if (Array.isArray(state.connectedPlayers)) {
+                state.connectedPlayers.forEach(p => {
+                    if (p.id === state.peer.id) return; // Skip duplication checks
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.beginPath();
+                    ctx.arc(p.x * canvas.width, p.y * canvas.height, 14, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+            }
+
+            // Draw Local Controller Avatar representation glow rings metrics mapping arrays elements
+            ctx.fillStyle = varName('--neon-blue');
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = varName('--neon-blue');
+            ctx.beginPath();
+            ctx.arc(localPixelX, localPixelY, 18, 0, 2 * Math.PI);
+            ctx.fill();
+            // Reset shadows values variables attributes context parameters elements
+            ctx.shadowBlur = 0; 
+
+            // RENDER BALL ONLY IF POSSESSED BY USER DEVICE (Enforces Strict Invisible Ruleset Architecture)
+            if (state.connection && state.connection.open && state.ball.x && state.localPlayer.y >= RESTRICTED_ZONE_Y_LIMIT) {
+                // If local client device maintains possession state lock, overlay ball asset presentation tracking
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ffffff';
+                
+                ctx.beginPath();
+                ctx.arc(localPixelX, localPixelY - 25, 10, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.shadowBlur = 0;
+            }
+
+            requestAnimationFrame(drawLoopFrame);
+        }
+        requestAnimationFrame(drawLoopFrame);
+    }
+
+    // High Speed Utility Helper parsing CSS Design parameters accurately dynamically
+    function varName(variable) {
+        return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+    }
+</script>
+</body>
+</html>
