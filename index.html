@@ -2,1031 +2,953 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hidden Football AR Table Game</title>
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirCraft 3D: Ultra-Precision AR Studio</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
     <style>
         :root {
-            --bg-dark: #0d1117;
-            --panel-bg: rgba(22, 27, 34, 0.85);
+            --neon-cyan: #00e5ff;
             --neon-green: #39ff14;
             --neon-red: #ff3131;
-            --neon-blue: #00e5ff;
-            --text-main: #f0f6fc;
-            --grass-dark: #1b4d3e;
-            --grass-light: #22644d;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
-            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            --neon-purple: #bd00ff;
+            --neon-gold: #ffcc00;
+            --bg-dark: #060913;
+            --panel-bg: rgba(10, 16, 32, 0.9);
+            --border-glow: rgba(0, 229, 255, 0.25);
         }
 
         body, html {
+            margin: 0;
+            padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
             background-color: var(--bg-dark);
-            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #ffffff;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        #app-container {
+        #viewport-container {
             width: 100%;
             height: 100%;
-            position: relative;
-        }
-
-        .screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            z-index: 10;
-        }
-
-        .screen.active {
-            display: flex;
-        }
-
-        #menu-screen {
-            background: radial-gradient(circle at center, #1f2937 0%, #0b0f19 100%);
-        }
-
-        .glass-panel {
-            background: var(--panel-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 30px;
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-
-        h1 {
-            font-size: 2.2rem;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            background: linear-gradient(45deg, var(--neon-green), var(--neon-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            margin: 12px 0;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        }
-
-        .btn-primary {
-            background: var(--neon-green);
-            color: #000;
-        }
-
-        .btn-primary:hover {
-            background: #2ce20f;
-            box-shadow: 0 0 15px var(--neon-green);
-        }
-
-        .btn-secondary {
-            background: var(--neon-blue);
-            color: #000;
-        }
-
-        .btn-secondary:hover {
-            background: #00ccd4;
-            box-shadow: 0 0 15px var(--neon-blue);
-        }
-
-        .input-group {
-            margin: 20px 0;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            font-size: 0.85rem;
-            color: #8b949e;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #fff;
-            font-size: 1.1rem;
-            text-align: center;
-            letter-spacing: 2px;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--neon-blue);
-        }
-
-        #referee-screen {
-            background: #000;
-            padding: 0;
-        }
-
-        #camera-feed {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
             position: absolute;
             top: 0;
             left: 0;
             z-index: 1;
         }
 
-        #referee-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-            pointer-events: auto;
-        }
-
-        .referee-ui-layer {
-            position: absolute;
-            z-index: 3;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 15px;
-            pointer-events: none;
-        }
-
-        .interactive-element {
-            pointer-events: auto;
-        }
-
-        #player-screen {
-            background: repeating-linear-gradient(
-                90deg,
-                var(--grass-dark),
-                var(--grass-dark) 40px,
-                var(--grass-light) 40px,
-                var(--grass-light) 80px
-            );
-            padding: 0;
-            position: relative;
-        }
-
-        #restricted-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 49, 49, 0.4);
-            z-index: 100;
+        #webcam-feed {
             display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            animation: pulse-red 1s infinite alternate;
-            pointer-events: none;
         }
 
-        @keyframes pulse-red {
-            from { background-color: rgba(255, 49, 49, 0.3); }
-            to { background-color: rgba(255, 49, 49, 0.7); }
-        }
-
-        .warning-banner {
+        #monitor-canvas {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 260px;
+            height: 195px;
+            border-radius: 12px;
+            border: 2px solid var(--neon-cyan);
+            transform: scaleX(-1); /* Corrects mirror optics for natural hand guidance */
             background: #000;
-            color: var(--neon-red);
-            padding: 20px 40px;
-            font-size: 2rem;
-            font-weight: bold;
-            border: 3px solid var(--neon-red);
-            border-radius: 8px;
-            box-shadow: 0 0 30px var(--neon-red);
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+        }
+
+        /* Sci-Fi Dashboard UI Panel Overlays */
+        .hud-master-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 22px;
+            z-index: 10;
+            width: 360px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .hud-master-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .hud-master-container::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 4px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0 0 4px 0;
             text-transform: uppercase;
             letter-spacing: 3px;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
         }
 
-        #player-rendering-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
+        .sub-header {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 18px;
         }
 
-        .fullscreen-effect {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 90;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            pointer-events: none;
+        .section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin: 14px 0 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 4px;
         }
 
-        #ball-found-effect {
-            background: rgba(57, 255, 20, 0.2);
-        }
-
-        #goal-effect {
-            background: rgba(0, 229, 255, 0.3);
-        }
-
-        .effect-text {
-            font-size: 3.5rem;
-            font-weight: 900;
-            text-shadow: 0 0 20px currentColor;
-            animation: pop-up 0.5s ease-out;
-        }
-
-        @keyframes pop-up {
-            0% { transform: scale(0.5); opacity: 0; }
-            70% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(1); }
-        }
-
-        .hud-panel {
-            background: rgba(0, 0, 0, 0.6);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        #touch-joystick-zone {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255,255,255,0.15);
-            border-radius: 50%;
-            z-index: 20;
+        .data-stream {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 2px solid rgba(255,255,255,0.3);
-            pointer-events: auto;
-            touch-action: none;
-        }
-
-        #joystick-knob {
-            width: 50px;
-            height: 50px;
-            background: var(--neon-blue);
-            border-radius: 50%;
-            box-shadow: 0 0 15px var(--neon-blue);
-            transition: transform 0.05s linear;
-        }
-
-        .flex-row-between {
-            display: flex;
-            flex-direction: row;
             justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.85rem;
+            color: #cbd5e0;
             align-items: center;
-            width: 100%;
         }
+
+        .status-badge {
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .status-scanning { background: rgba(255, 183, 3, 0.15); color: #ffb703; }
+        .status-ready { background: rgba(0, 229, 255, 0.15); color: var(--neon-cyan); }
+        .status-build { background: rgba(57, 255, 20, 0.15); color: var(--neon-green); }
+        .status-erase { background: rgba(255, 49, 49, 0.15); color: var(--neon-red); }
+
+        .preview-node {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            display: inline-block;
+            border: 1px solid rgba(255,255,255,0.4);
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+
+        .grid-control-block {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.04);
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            margin: 8px 0;
+        }
+
+        .btn-math {
+            background: rgba(0, 229, 255, 0.15);
+            border: 1px solid var(--neon-cyan);
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .btn-math:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .display-value {
+            font-weight: bold;
+            font-family: monospace;
+            color: var(--neon-green);
+            font-size: 1.05rem;
+        }
+
+        .gesture-legend {
+            font-size: 0.78rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .gesture-row {
+            display: flex;
+            margin: 6px 0;
+            align-items: flex-start;
+        }
+
+        .gesture-icon {
+            min-width: 24px;
+            font-size: 0.9rem;
+        }
+
+        .btn-action {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 8px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-action:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #fff;
+        }
+
+        .btn-purge {
+            background: rgba(255, 49, 49, 0.15);
+            color: #ff3131;
+            border: 1px solid #ff3131;
+        }
+
+        .btn-purge:hover {
+            background: #ff3131;
+            color: #000;
+            box-shadow: 0 0 15px #ff3131;
+        }
+
+        #history-terminal {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            height: 80px;
+            overflow-y: hidden;
+            font-family: monospace;
+            font-size: 0.7rem;
+            padding: 6px;
+            color: #cbd5e0;
+        }
+
+        .log-line { margin: 2px 0; }
+        .log-build { color: var(--neon-green); }
+        .log-erase { color: var(--neon-red); }
+        .log-sys { color: var(--neon-cyan); }
+
+        #loading-screen {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: #04060b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+
+        .quantum-loader {
+            width: 65px;
+            height: 65px;
+            border: 4px solid rgba(0, 229, 255, 0.08);
+            border-radius: 50%;
+            border-top-color: var(--neon-cyan);
+            animation: rotate-loop 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes rotate-loop { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="app-container">
-
-    <div id="menu-screen" class="screen active">
-        <div class="glass-panel">
-            <h1>Hidden Football AR</h1>
-            <p style="color: #8b949e; margin-bottom: 20px; font-size: 0.9rem;">Serverless Real-Time P2P Physical Table System</p>
-            
-            <div class="input-group">
-                <label for="username-input">Player Nickname</label>
-                <input type="text" id="username-input" value="Striker_X" maxlength="12">
-            </div>
-
-            <div class="input-group">
-                <label for="room-input">Room Join Code</label>
-                <input type="text" id="room-input" value="REFCAM" maxlength="8">
-            </div>
-
-            <div style="margin-top: 30px;">
-                <button id="btn-join-player" class="btn btn-primary">Join as Player Device</button>
-                <button id="btn-host-ref" class="btn btn-secondary">Setup Referee Camera</button>
-            </div>
-        </div>
+    <div id="loading-screen">
+        <div class="quantum-loader"></div>
+        <p style="margin-top: 24px; font-weight: bold; letter-spacing: 2px; color: var(--neon-cyan); font-size: 0.85rem;">INITIALIZING COMPUTER VISION SYSTEMS...</p>
     </div>
 
-    <div id="referee-screen" class="screen">
-        <video id="camera-feed" autoplay playsinline muted></video>
-        <canvas id="referee-overlay"></canvas>
+    <div class="hud-master-container">
+        <h1>AirCraft 3D Pro</h1>
+        <div class="sub-header">Precision Spatial Workstation</div>
         
-        <div class="referee-ui-layer">
-            <div class="flex-row-between">
-                <div class="hud-panel" id="ref-room-display">ROOM: --</div>
-                <div class="hud-panel" id="ref-status-display" style="color: #ffb703;">TAP BALL ON SCREEN TO LOCK COLOR</div>
-            </div>
-            
-            <div></div>
-
-            <div class="flex-row-between">
-                <button id="btn-ref-reset-ball" class="btn btn-secondary interactive-element" style="width: auto; padding: 10px 20px; margin: 0;">Reset Ball Position</button>
-                <button class="btn btn-primary interactive-element exit-to-menu-btn" style="width: auto; padding: 10px 20px; margin: 0; background: #333; color: #fff;">Exit</button>
-            </div>
+        <div class="section-title">Telemetry Stream</div>
+        <div class="data-stream">
+            <span>Tracking State:</span>
+            <span id="sys-status" class="badge status-scanning">Searching</span>
         </div>
+        <div class="data-stream">
+            <span>Blocks Active:</span>
+            <span id="voxel-counter" style="color: #fff; font-weight: bold;">0</span>
+        </div>
+
+        <div class="section-title">Brush Metrics</div>
+        <div class="data-stream">
+            <span>Geometry Template:</span>
+            <span id="lbl-shape" style="color: var(--neon-cyan); font-weight: bold; text-transform: uppercase;">Cube</span>
+        </div>
+        <div class="data-stream">
+            <span>Material Matrix:</span>
+            <span>
+                <span id="lbl-mat">Neon Cyan</span>
+                <span id="box-color-preview" class="preview-node" style="background-color: #00e5ff;"></span>
+            </span>
+        </div>
+
+        <div class="section-title">Voxel Optimization Scale</div>
+        <label style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Voxel Snap Dimensions (Spacing)</label>
+        <div class="grid-control-block">
+            <button id="btn-dec-scale" class="btn-math">−</button>
+            <div>Scale: <span id="val-scale" class="display-value">1.2</span></div>
+            <button id="btn-inc-scale" class="btn-math">+</button>
+        </div>
+
+        <div class="section-title">History Stack Terminal</div>
+        <div id="history-terminal">
+            <div class="log-line log-sys">[SYS] Engine Core Standby. Awaiting track...</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="btn-undo" class="btn-action">Undo Action</button>
+            <button id="btn-redo" class="btn-action">Redo Action</button>
+        </div>
+
+        <div class="section-title">Calibration Rules Profile</div>
+        <div class="gesture-legend">
+            <div class="gesture-row"><span class="gesture-icon">👌</span><span><b>Physical Right Hand:</b> Pinch index + thumb to build continuously</span></div>
+            <div class="gesture-row"><span class="gesture-icon">✌</span><span><b>Physical Right Hand:</b> Pinch middle + thumb to cycle primitives</span></div>
+            <div class="gesture-row"><span class="gesture-icon">🤙</span><span><b>Physical Right Hand:</b> Pinch pinky + thumb to undo previous action</span></div>
+            <div class="gesture-row"><span class="gesture-icon">🤏</span><span><b>Physical Left Hand:</b> Pinch index + thumb to atomize targeted blocks</span></div>
+            <div class="gesture-row"><span class="gesture-icon">✊</span><span><b>Physical Left Hand:</b> Close fist entirely and drag in air to rotate field view</span></div>
+        </div>
+
+        <div class="section-title">System Operations</div>
+        <button id="btn-save" class="btn-action">Save Design to Storage</button>
+        <button id="btn-load" class="btn-action">Load Saved Design</button>
+        <button id="btn-wipe" class="btn-action btn-purge">Wipe Spacetime Grid</button>
     </div>
 
-    <div id="player-screen" class="screen">
-        <canvas id="player-rendering-canvas"></canvas>
-        
-        <div id="restricted-overlay">
-            <div class="warning-banner">RESTRICTED ZONE!</div>
-            <p style="color: #fff; margin-top: 10px; font-weight: bold; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px;">RETREAT TO YOUR OWN HALF</p>
-        </div>
+    <video id="webcam-feed" autoplay playsinline muted></video>
+    <canvas id="monitor-canvas"></canvas>
+    <div id="viewport-container"></div>
 
-        <div id="ball-found-effect" class="fullscreen-effect">
-            <div class="effect-text" style="color: var(--neon-green);">BALL FOUND</div>
-        </div>
-
-        <div id="goal-effect" class="fullscreen-effect">
-            <div class="effect-text" style="color: var(--neon-blue);">GOAL!!!</div>
-        </div>
-
-        <div id="touch-joystick-zone">
-            <div id="joystick-knob"></div>
-        </div>
-
-        <div class="referee-ui-layer">
-            <div class="flex-row-between">
-                <div class="hud-panel" id="player-status-hud">SEARCHING FOR BALL...</div>
-                <div class="hud-panel" id="player-possession-hud" style="color: #fff; border-color: #555;">NO POSSESSION</div>
-            </div>
+    <script>
+        /**
+         * Global Application State Architecture Namespace Context
+         */
+        const AppState = {
+            voxelDimensions: 1.2,
+            maxVoxelConstraint: 3500,
+            cooldownRates: { build: 140, shape: 400, material: 400, history: 450 },
             
-            <div style="text-align: center; width: 100%;">
-                <div id="swipe-tip" style="display:none; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 8px; display: inline-block; font-size: 0.85rem; border: 1px solid var(--neon-green);">
-                    SWIPE UP FAST TO SHOOT
-                </div>
-            </div>
-
-            <div class="flex-row-between">
-                <div class="hud-panel" id="player-coords-hud">X: 0.50 | Y: 0.70</div>
-                <button class="btn interactive-element exit-to-menu-btn" style="width: auto; padding: 8px 16px; margin: 0; background: rgba(255,255,255,0.1); color: #fff; border-radius: 20px; font-size: 0.8rem;">Leave Match</button>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-<script>
-    // System Configurations
-    const FIELD_ASPECT_RATIO = 1.5;
-    const PROXIMITY_THRESHOLD = 0.09; 
-    const RESTRICTED_ZONE_Y_LIMIT = 0.25;
-
-    let state = {
-        role: null,            
-        roomCode: '',
-        username: '',
-        peer: null,
-        connection: null,      
-        connectedPlayers: {},  
-        ball: { x: 0.5, y: 0.5, vx: 0, vy: 0, possessedBy: null },
-        localPlayer: { id: '', name: '', x: 0.5, y: 0.7, team: 'A', inRestrictedZone: false },
-        targetColor: { r: 0, g: 0, b: 0 }, 
-        isColorCalibrated: false
-    };
-
-    const screens = {
-        menu: document.getElementById('menu-screen'),
-        referee: document.getElementById('referee-screen'),
-        player: document.getElementById('player-screen')
-    };
-
-    document.getElementById('btn-host-ref').addEventListener('click', () => initializeSession('referee'));
-    document.getElementById('btn-join-player').addEventListener('click', () => initializeSession('player'));
-    
-    document.querySelectorAll('.exit-to-menu-btn').forEach(btn => {
-        btn.addEventListener('click', () => location.reload());
-    });
-
-    function initializeSession(chosenRole) {
-        state.role = chosenRole;
-        state.roomCode = document.getElementById('room-input').value.trim().toUpperCase();
-        state.username = document.getElementById('username-input').value.trim();
-
-        if(!state.roomCode) { alert('Please enter a Room Code'); return; }
-        if(!state.username && state.role === 'player') { alert('Please choose a Nickname'); return; }
-
-        switchActiveScreen(state.role);
-
-        if (state.role === 'referee') {
-            state.peer = new Peer(`HFB-ROOM-${state.roomCode}`);
-            setupRefereeNetworkListeners();
-            initRefereeHardwareCamera();
-        } else {
-            state.peer = new Peer(); 
-            setupPlayerNetworkListeners();
-        }
-    }
-
-    function switchActiveScreen(role) {
-        Object.values(screens).forEach(s => s.classList.remove('active'));
-        screens[role].classList.add('active');
-        try { if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } catch(e){}
-    }
-
-    /**
-     * REFEREE HOST ENGINE
-     */
-    function setupRefereeNetworkListeners() {
-        document.getElementById('ref-room-display').innerText = `ROOM: ${state.roomCode}`;
-        
-        state.peer.on('open', (id) => {
-            console.log('Referee Node Host active:', id);
-        });
-
-        state.peer.on('error', (err) => {
-            alert("Room Code registration failed. Try a different, unique code!");
-            location.reload();
-        });
-
-        state.peer.on('connection', (conn) => {
-            conn.on('data', (data) => {
-                if (data.type === 'JOIN') {
-                    state.connectedPlayers[conn.peer] = {
-                        id: conn.peer,
-                        name: data.name,
-                        x: 0.5,
-                        y: 0.7,
-                        conn: conn
-                    };
-                }
-                if (data.type === 'PLAYER_UPDATE') {
-                    if (state.connectedPlayers[conn.peer]) {
-                        state.connectedPlayers[conn.peer].x = data.x;
-                        state.connectedPlayers[conn.peer].y = data.y;
-                    }
-                }
-                if (data.type === 'ACTION_SWIPE') {
-                    handlePlayerSwipeAction(conn.peer, data.vx, data.vy);
-                }
-            });
-
-            conn.on('close', () => {
-                delete state.connectedPlayers[conn.peer];
-                if(state.ball.possessedBy === conn.peer) state.ball.possessedBy = null;
-            });
-        });
-
-        setInterval(processRefereeServerPhysicsLoop, 33);
-    }
-
-    function broadcastGameState() {
-        let playersDataSummary = [];
-        for (let pId in state.connectedPlayers) {
-            playersDataSummary.push({
-                id: pId,
-                name: state.connectedPlayers[pId].name,
-                x: state.connectedPlayers[pId].x,
-                y: state.connectedPlayers[pId].y
-            });
-        }
-
-        let transmissionPackage = {
-            type: 'STATE_SYNC',
-            ball: { possessedBy: state.ball.possessedBy },
-            players: playersDataSummary
+            spatialHashGrid: new Map(), 
+            historyStack: [],
+            redoStack: [],
+            particlesPool: [],
+            
+            activeShapeIndex: 0,
+            activePaletteIndex: 0,
+            lastTimestamps: { build: 0, shape: 0, material: 0, history: 0 },
+            totalBlockCounter: 0,
+            
+            shapes: ["Cube", "Sphere", "Cylinder", "Cone", "Torus"],
+            palette: [
+                { name: "Neon Cyan", hex: 0x00e5ff, emissive: 0x003344 },
+                { name: "Plasma Green", hex: 0x39ff14, emissive: 0x0a3305 },
+                { name: "Magmatic Red", hex: 0xff3131, emissive: 0x440505 },
+                { name: "Cyber Purple", hex: 0xbd00ff, emissive: 0x220044 },
+                { name: "Alchemist Gold", hex: 0xffcc00, emissive: 0x332200 }
+            ],
+            
+            cameraDragMemory: { isActive: false, baseHandX: 0, baseHandY: 0, baseCamPhi: 0, baseCamTheta: 0 }
         };
 
-        for (let pId in state.connectedPlayers) {
-            transmissionPackage.ball.isLocalPlayerPossessed = (state.ball.possessedBy === pId);
-            if (state.ball.possessedBy === pId) {
-                transmissionPackage.ball.rawX = state.ball.x;
-                transmissionPackage.ball.rawY = state.ball.y;
-            }
-            state.connectedPlayers[pId].conn.send(transmissionPackage);
-        }
-    }
+        const DOM = {
+            status: document.getElementById('sys-status'),
+            counter: document.getElementById('voxel-counter'),
+            loading: document.getElementById('loading-screen'),
+            wipe: document.getElementById('btn-wipe'),
+            undo: document.getElementById('btn-undo'),
+            redo: document.getElementById('btn-redo'),
+            save: document.getElementById('btn-save'),
+            load: document.getElementById('btn-load'),
+            scaleVal: document.getElementById('val-scale'),
+            incScale: document.getElementById('btn-inc-scale'),
+            decScale: document.getElementById('btn-dec-scale'),
+            lblShape: document.getElementById('lbl-shape'),
+            lblMat: document.getElementById('lbl-mat'),
+            colorBox: document.getElementById('box-color-preview'),
+            terminal: document.getElementById('history-terminal')
+        };
 
-    function handlePlayerSwipeAction(playerId, vx, vy) {
-        if (state.ball.possessedBy === playerId) {
-            state.ball.possessedBy = null;
-            state.ball.vx = vx * 0.2; 
-            state.ball.vy = vy * 0.2;
-        }
-    }
+        let scene, camera, renderer, controls;
+        let rightCursor, leftCursor, rightCursorMaterials, leftCursorMaterials;
 
-    function processRefereeServerPhysicsLoop() {
-        if (state.ball.possessedBy) {
-            let hostOwner = state.connectedPlayers[state.ball.possessedBy];
-            if (hostOwner) {
-                state.ball.x = hostOwner.x;
-                state.ball.y = hostOwner.y;
-                state.ball.vx = 0;
-                state.ball.vy = 0;
-            }
-        } else {
-            state.ball.x += state.ball.vx;
-            state.ball.y += state.ball.vy;
-            state.ball.vx *= 0.94; 
-            state.ball.vy *= 0.94;
+        /**
+         * Core Graphics Framework Setup
+         */
+        function initStudioGraphicsContext() {
+            const container = document.getElementById('viewport-container');
 
-            if (state.ball.x < 0) { state.ball.x = 0; state.ball.vx *= -1; }
-            if (state.ball.x > 1) { state.ball.x = 1; state.ball.vx *= -1; }
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x04060a);
+            scene.fog = new THREE.FogExp2(0x04060a, 0.01);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 15, 35);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 + 0.05;
+
+            scene.add(new THREE.AmbientLight(0x111625));
             
-            if (state.ball.y < 0) {
-                if (state.ball.x > 0.3 && state.ball.x < 0.7) {
-                    triggerGlobalGoalCelebration();
-                } else {
-                    state.ball.y = 0; state.ball.vy *= -1;
-                }
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            sunLight.position.set(20, 40, 20);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 1024;
+            sunLight.shadow.mapSize.height = 1024;
+            scene.add(sunLight);
+
+            const bounceLight = new THREE.PointLight(0x00e5ff, 0.6, 60);
+            bounceLight.position.set(-15, 10, -15);
+            scene.add(bounceLight);
+
+            const structuralGrid = new THREE.GridHelper(80, 80, 0x00e5ff, 0x111827);
+            structuralGrid.position.y = -0.01;
+            scene.add(structuralGrid);
+
+            const floorMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(80, 80),
+                new THREE.MeshStandardMaterial({ color: 0x05070c, roughness: 0.7, metalness: 0.1 })
+            );
+            floorMesh.rotation.x = -Math.PI / 2;
+            floorMesh.receiveShadow = true;
+            scene.add(floorMesh);
+
+            generateCursorObjectsContext();
+            attachInterfaceDOMActionListeners();
+
+            window.addEventListener('resize', onWindowResizePerspectiveUpdate, false);
+        }
+
+        function generateCursorObjectsContext() {
+            const buildCursorGeo = new THREE.BoxGeometry(AppState.voxelDimensions, AppState.voxelDimensions, AppState.voxelDimensions);
+            rightCursorMaterials = new THREE.MeshBasicMaterial({ color: 0x39ff14, wireframe: true, transparent: true, opacity: 0.8 });
+            rightCursor = new THREE.Mesh(buildCursorGeo, rightCursorMaterials);
+            rightCursor.visible = false;
+            scene.add(rightCursor);
+
+            const eraseCursorGeo = new THREE.SphereGeometry(AppState.voxelDimensions * 0.65, 8, 8);
+            leftCursorMaterials = new THREE.MeshBasicMaterial({ color: 0xff3131, wireframe: true, transparent: true, opacity: 0.7 });
+            leftCursor = new THREE.Mesh(eraseCursorGeo, leftCursorMaterials);
+            leftCursor.visible = false;
+            scene.add(leftCursor);
+        }
+
+        function getGeometryPrimitiveFromTemplate(shapeString, scale) {
+            switch(shapeString) {
+                case "Sphere": return new THREE.SphereGeometry(scale * 0.5, 14, 14);
+                case "Cylinder": return new THREE.CylinderGeometry(scale * 0.5, scale * 0.5, scale, 12);
+                case "Cone": return new THREE.ConeGeometry(scale * 0.5, scale, 12);
+                case "Torus": return new THREE.TorusGeometry(scale * 0.35, scale * 0.15, 6, 16);
+                default: return new THREE.BoxGeometry(scale, scale, scale);
             }
-            if (state.ball.y > 1) {
-                if (state.ball.x > 0.3 && state.ball.x < 0.7) {
-                    triggerGlobalGoalCelebration();
-                } else {
-                    state.ball.y = 1; state.ball.vy *= -1;
-                }
+        }
+
+        /**
+         * Voxel Database Storage Mutators
+         */
+        function executeVoxelConstructionOperation(pos, trackingShape, trackingMaterial, writeToHistory = true) {
+            if (AppState.totalBlockCounter >= AppState.maxVoxelConstraint) return;
+
+            const scale = AppState.voxelDimensions;
+            const sncX = Math.round(pos.x / scale) * scale;
+            const sncY = Math.max(scale * 0.5, Math.round(pos.y / scale) * scale);
+            const sncZ = Math.round(pos.z / scale) * scale;
+
+            const coordinateSpatialHashKey = `${sncX.toFixed(2)},${sncY.toFixed(2)},${sncZ.toFixed(2)}`;
+            if (AppState.spatialHashGrid.has(coordinateSpatialHashKey)) return; 
+
+            const meshGeo = getGeometryPrimitiveFromTemplate(trackingShape, scale);
+            const meshMat = new THREE.MeshStandardMaterial({
+                color: trackingMaterial.hex,
+                emissive: trackingMaterial.emissive,
+                roughness: 0.15,
+                metalness: 0.1,
+                bumpScale: 0.05
+            });
+
+            const blockMesh = new THREE.Mesh(meshGeo, meshMat);
+            blockMesh.position.set(sncX, sncY, sncZ);
+            blockMesh.castShadow = true;
+            blockMesh.receiveShadow = true;
+            scene.add(blockMesh);
+
+            AppState.spatialHashGrid.set(coordinateSpatialHashKey, {
+                mesh: blockMesh,
+                shape: trackingShape,
+                material: trackingMaterial
+            });
+
+            AppState.totalBlockCounter++;
+            DOM.counter.innerText = AppState.totalBlockCounter;
+
+            if (writeToHistory) {
+                AppState.historyStack.push({ type: 'BUILD', hashKey: coordinateSpatialHashKey, x: sncX, y: sncY, z: sncZ, shape: trackingShape, material: trackingMaterial });
+                AppState.redoStack = []; 
+                appendLogToTerminalStream(`Placed ${trackingShape} Voxel at (${sncX.toFixed(1)}, ${sncY.toFixed(1)})`, 'build');
             }
 
-            for (let pId in state.connectedPlayers) {
-                let p = state.connectedPlayers[pId];
-                if (p.y < RESTRICTED_ZONE_Y_LIMIT) continue; 
+            executeVisualParticleBurstAnimation(blockMesh.position, trackingMaterial.hex, 8);
+        }
 
-                let dx = state.ball.x - p.x;
-                let dy = state.ball.y - p.y;
-                let distance = Math.sqrt(dx*dx + dy*dy);
+        function executeVoxelDemolitionOperation(pos, writeToHistory = true) {
+            const scale = AppState.voxelDimensions;
+            const sncX = Math.round(pos.x / scale) * scale;
+            const sncY = Math.max(scale * 0.5, Math.round(pos.y / scale) * scale);
+            const sncZ = Math.round(pos.z / scale) * scale;
 
-                if (distance < PROXIMITY_THRESHOLD) {
-                    state.ball.possessedBy = pId;
-                    p.conn.send({ type: 'BALL_FOUND_TRIGGER' });
-                    break;
+            const coordinateSpatialHashKey = `${sncX.toFixed(2)},${sncY.toFixed(2)},${sncZ.toFixed(2)}`;
+            if (!AppState.spatialHashGrid.has(coordinateSpatialHashKey)) return;
+
+            const targetBlockRecordData = AppState.spatialHashGrid.get(coordinateSpatialHashKey);
+            
+            targetBlockRecordData.mesh.geometry.dispose();
+            targetBlockRecordData.mesh.material.dispose();
+            scene.remove(targetBlockRecordData.mesh);
+
+            executeVisualParticleBurstAnimation(targetBlockRecordData.mesh.position, targetBlockRecordData.material.hex, 12);
+
+            AppState.spatialHashGrid.delete(coordinateSpatialHashKey);
+            AppState.totalBlockCounter--;
+            DOM.counter.innerText = AppState.totalBlockCounter;
+
+            if (writeToHistory) {
+                AppState.historyStack.push({
+                    type: 'ERASE',
+                    hashKey: coordinateSpatialHashKey,
+                    x: sncX, y: sncY, z: sncZ,
+                    shape: targetBlockRecordData.shape,
+                    material: targetBlockRecordData.material
+                });
+                appendLogToTerminalStream(`Demolished Voxel at (${sncX.toFixed(1)}, ${sncY.toFixed(1)})`, 'erase');
+            }
+        }
+
+        function executeUndoOperationCommand() {
+            if (AppState.historyStack.length === 0) return;
+            const lastActionTransactionRecord = AppState.historyStack.pop();
+            AppState.redoStack.push(lastActionTransactionRecord);
+
+            if (lastActionTransactionRecord.type === 'BUILD') {
+                executeVoxelDemolitionOperation({ x: lastActionTransactionRecord.x, y: lastActionTransactionRecord.y, z: lastActionTransactionRecord.z }, false);
+                appendLogToTerminalStream(`Undo Build operation executed.`, 'sys');
+            } else if (lastActionTransactionRecord.type === 'ERASE') {
+                executeVoxelConstructionOperation({ x: lastActionTransactionRecord.x, y: lastActionTransactionRecord.y, z: lastActionTransactionRecord.z }, lastActionTransactionRecord.shape, lastActionTransactionRecord.material, false);
+                appendLogToTerminalStream(`Undo Demolition operation executed.`, 'sys');
+            }
+        }
+
+        function executeRedoOperationCommand() {
+            if (AppState.redoStack.length === 0) return;
+            const actionToReplayRecord = AppState.redoStack.pop();
+            AppState.historyStack.push(actionToReplayRecord);
+
+            if (actionToReplayRecord.type === 'BUILD') {
+                executeVoxelConstructionOperation({ x: actionToReplayRecord.x, y: actionToReplayRecord.y, z: actionToReplayRecord.z }, actionToReplayRecord.shape, actionToReplayRecord.material, false);
+                appendLogToTerminalStream(`Redo Build operation executed.`, 'sys');
+            } else if (actionToReplayRecord.type === 'ERASE') {
+                executeVoxelDemolitionOperation({ x: actionToReplayRecord.x, y: actionToReplayRecord.y, z: actionToReplayRecord.z }, false);
+                appendLogToTerminalStream(`Redo Demolition operation executed.`, 'sys');
+            }
+        }
+
+        function executeVisualParticleBurstAnimation(positionCoordinates, colorHex, quantityCount) {
+            const particleGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+            for(let k = 0; k < quantityCount; k++) {
+                const particleMat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 1.0 });
+                const particleMeshItem = new THREE.Mesh(particleGeo, particleMat);
+                particleMeshItem.position.copy(positionCoordinates);
+                
+                particleMeshItem.userData = {
+                    vx: (Math.random() - 0.5) * 0.22,
+                    vy: (Math.random() * 0.2) + 0.1,
+                    vz: (Math.random() - 0.5) * 0.22,
+                    life: 1.0,
+                    decay: (Math.random() * 0.04) + 0.03
+                };
+
+                scene.add(particleMeshItem);
+                AppState.particlesPool.push(particleMeshItem);
+            }
+        }
+
+        function updateParticleSimulationsKinematicsFrame() {
+            for (let idx = AppState.particlesPool.length - 1; idx >= 0; idx--) {
+                const p = AppState.particlesPool[idx];
+                p.position.x += p.userData.vx;
+                p.position.y += p.userData.vy;
+                p.position.z += p.userData.vz;
+                p.userData.vy -= 0.008; 
+                p.userData.life -= p.userData.decay;
+                p.material.opacity = p.userData.life;
+
+                if (p.userData.life <= 0) {
+                    p.geometry.dispose();
+                    p.material.dispose();
+                    scene.remove(p);
+                    AppState.particlesPool.splice(idx, 1);
                 }
             }
         }
 
-        broadcastGameState();
-        renderRefereeDiagnosticsOverlay();
-    }
-
-    function triggerGlobalGoalCelebration() {
-        state.ball.x = 0.5; state.ball.y = 0.5;
-        state.ball.vx = 0; state.ball.vy = 0;
-        state.ball.possessedBy = null;
-        for (let pId in state.connectedPlayers) {
-            state.connectedPlayers[pId].conn.send({ type: 'GOAL_CELEBRATION' });
-        }
-    }
-
-    /**
-     * REFEREE COMPUTER VISION (REVISED LOCK-ON CAMERA)
-     */
-    function initRefereeHardwareCamera() {
-        const video = document.getElementById('camera-feed');
-        
-        navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
-            audio: false
-        })
-        .then(stream => {
-            video.srcObject = stream;
-            video.play();
-            setupComputerVisionAnalysisLoop();
-        })
-        .catch(err => {
-            setupFallbackRefereeControls();
-        });
-
-        // Exact Tap Calibration Upgrade
-        document.getElementById('referee-overlay').addEventListener('click', (e) => {
-            const rect = e.target.getBoundingClientRect();
-            const clickX = ((e.clientX - rect.left) / rect.width) * (video.videoWidth || 640);
-            const clickY = ((e.clientY - rect.top) / rect.height) * (video.videoHeight || 480);
-            calibrateTargetColorAtPixel(video, Math.floor(clickX), Math.floor(clickY));
-        });
-
-        document.getElementById('btn-ref-reset-ball').addEventListener('click', () => {
-            state.ball.x = 0.5; state.ball.y = 0.5;
-            state.ball.vx = 0; state.ball.vy = 0;
-            state.ball.possessedBy = null;
-        });
-    }
-
-    function calibrateTargetColorAtPixel(video, targetX, targetY) {
-        const hiddenCanvas = document.createElement('canvas');
-        hiddenCanvas.width = video.videoWidth || 640;
-        hiddenCanvas.height = video.videoHeight || 480;
-        const ctx = hiddenCanvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
-        
-        // Samples a 3x3 pixel structural framework matrix center to smooth noise
-        let rSum = 0, gSum = 0, bSum = 0, totalSamples = 0;
-        for(let boxX = -1; boxX <= 1; boxX++) {
-            for(let boxY = -1; boxY <= 1; boxY++) {
-                const pixel = ctx.getImageData(targetX + boxX, targetY + boxY, 1, 1).data;
-                rSum += pixel[0]; gSum += pixel[1]; bSum += pixel[2];
-                totalSamples++;
-            }
+        function serializeAndSaveVoxelStateToStorage() {
+            const datasetExportList = [];
+            AppState.spatialHashGrid.forEach((val) => {
+                datasetExportList.push({
+                    pos: { x: val.mesh.position.x, y: val.mesh.position.y, z: val.mesh.position.z },
+                    shape: val.shape,
+                    paletteIdx: AppState.palette.findIndex(p => p.name === val.material.name)
+                });
+            });
+            localStorage.setItem('AIRCRAFT_PRO_WORKSPACE_SAVE', JSON.stringify(datasetExportList));
+            alert(`Design saved successfully (${datasetExportList.length} blocks compiled)`);
         }
 
-        state.targetColor.r = Math.floor(rSum / totalSamples);
-        state.targetColor.g = Math.floor(gSum / totalSamples);
-        state.targetColor.b = Math.floor(bSum / totalSamples);
-        state.isColorCalibrated = true;
-        
-        const statusDisplay = document.getElementById('ref-status-display');
-        statusDisplay.innerText = `LOCKED TRACKING: RGB(${state.targetColor.r},${state.targetColor.g},${state.targetColor.b})`;
-        statusDisplay.style.color = "#39ff14";
-    }
+        function deserializeAndLoadVoxelStateFromStorage() {
+            const rawImportDataString = localStorage.getItem('AIRCRAFT_PRO_WORKSPACE_SAVE');
+            if(!rawImportDataString) return alert("No saved map configuration profile located.");
 
-    function setupComputerVisionAnalysisLoop() {
-        const video = document.getElementById('camera-feed');
-        const overlayCanvas = document.getElementById('referee-overlay');
-        const ctx = overlayCanvas.getContext('2d');
+            wipeSpacetimeWorkspaceClean();
+            const parsedArray = JSON.parse(rawImportDataString);
+            parsedArray.forEach(b => {
+                const materialObj = AppState.palette[b.paletteIdx] || AppState.palette[0];
+                executeVoxelConstructionOperation(b.pos, b.shape, materialObj, false);
+            });
+            appendLogToTerminalStream(`Loaded workspace setup from storage.`, 'sys');
+        }
 
-        function processFrameRoutine() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                if (overlayCanvas.width !== video.videoWidth) {
-                    overlayCanvas.width = video.videoWidth;
-                    overlayCanvas.height = video.videoHeight;
+        function wipeSpacetimeWorkspaceClean() {
+            AppState.spatialHashGrid.forEach((val) => {
+                val.mesh.geometry.dispose();
+                val.mesh.material.dispose();
+                scene.remove(val.mesh);
+            });
+            AppState.spatialHashGrid.clear();
+            AppState.historyStack = []; AppState.redoStack = [];
+            AppState.totalBlockCounter = 0; DOM.counter.innerText = 0;
+            appendLogToTerminalStream(`Workspace space entirely cleared.`, 'sys');
+        }
+
+        function cycleActiveGeometryShapeType() {
+            AppState.activeShapeIndex = (AppState.activeShapeIndex + 1) % AppState.shapes.length;
+            const activeShapeString = AppState.shapes[AppState.activeShapeIndex];
+            DOM.lblShape.innerText = activeShapeString;
+            
+            rightCursor.geometry.dispose();
+            rightCursor.geometry = getGeometryPrimitiveFromTemplate(activeShapeString, AppState.voxelDimensions);
+            appendLogToTerminalStream(`Brush geometry toggled to: ${activeShapeString}`, 'sys');
+        }
+
+        function cycleActiveMaterialColorPalette() {
+            AppState.activePaletteIndex = (AppState.activePaletteIndex + 1) % AppState.palette.length;
+            const activeMat = AppState.palette[AppState.activePaletteIndex];
+            DOM.lblMat.innerText = activeMat.name;
+            DOM.colorBox.style.backgroundColor = "#" + activeMat.hex.toString(16).padStart(6, '0');
+            rightCursorMaterials.color.setHex(activeMat.hex);
+        }
+
+        function appendLogToTerminalStream(messageText, styleContextClass) {
+            const line = document.createElement('div');
+            line.className = `log-line log-${styleContextClass}`;
+            line.innerText = `> ${messageText}`;
+            DOM.terminal.appendChild(line);
+            DOM.terminal.scrollTop = DOM.terminal.scrollHeight;
+            if(DOM.terminal.children.length > 30) DOM.terminal.removeChild(DOM.terminal.firstChild);
+        }
+
+        function attachInterfaceDOMActionListeners() {
+            DOM.wipe.addEventListener('click', wipeSpacetimeWorkspaceClean);
+            DOM.undo.addEventListener('click', executeUndoOperationCommand);
+            DOM.redo.addEventListener('click', executeRedoOperationCommand);
+            DOM.save.addEventListener('click', serializeAndSaveVoxelStateToStorage);
+            DOM.load.addEventListener('click', deserializeAndLoadVoxelStateFromStorage);
+
+            DOM.incScale.addEventListener('click', () => {
+                if(AppState.voxelDimensions < 4.0) {
+                    AppState.voxelDimensions = parseFloat((AppState.voxelDimensions + 0.2).toFixed(1));
+                    DOM.scaleVal.innerText = AppState.voxelDimensions;
+                    rightCursor.scale.setScalar(AppState.voxelDimensions / 1.2);
+                    leftCursor.scale.setScalar(AppState.voxelDimensions / 1.2);
                 }
+            });
 
-                ctx.drawImage(video, 0, 0, overlayCanvas.width, overlayCanvas.height);
-                const frameData = ctx.getImageData(0, 0, overlayCanvas.width, overlayCanvas.height);
-                const pixels = frameData.data;
+            DOM.decScale.addEventListener('click', () => {
+                if(AppState.voxelDimensions > 0.4) {
+                    AppState.voxelDimensions = parseFloat((AppState.voxelDimensions - 0.2).toFixed(1));
+                    DOM.scaleVal.innerText = AppState.voxelDimensions;
+                    rightCursor.scale.setScalar(AppState.voxelDimensions / 1.2);
+                    leftCursor.scale.setScalar(AppState.voxelDimensions / 1.2);
+                }
+            });
+        }
 
-                let matchingPixelsSumX = 0;
-                let matchingPixelsSumY = 0;
-                let matchingCount = 0;
-                const colorTolerance = 55; // Expanded tolerance matrix index
+        function onWindowResizePerspectiveUpdate() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
 
-                if (state.isColorCalibrated) {
-                    for (let i = 0; i < pixels.length; i += 4) {
-                        let rDiff = Math.abs(pixels[i] - state.targetColor.r);
-                        let gDiff = Math.abs(pixels[i+1] - state.targetColor.g);
-                        let bDiff = Math.abs(pixels[i+2] - state.targetColor.b);
+        /**
+         * Step 4: Scale-Invariant Mirror-Corrected Hand Vision Interaction Pipeline
+         */
+        function initMediaPipeComputerVisionModule() {
+            const video = document.getElementById('webcam-feed');
+            const monitor = document.getElementById('monitor-canvas');
+            const mCtx = monitor.getContext('2d');
 
-                        if (rDiff < colorTolerance && gDiff < colorTolerance && bDiff < colorTolerance) {
-                            let index = i / 4;
-                            matchingPixelsSumX += index % overlayCanvas.width;
-                            matchingPixelsSumY += Math.floor(index / overlayCanvas.width);
-                            matchingCount++;
+            const handsAI = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+            handsAI.setOptions({ 
+                maxNumHands: 2, 
+                modelComplexity: 1, 
+                minDetectionConfidence: 0.75, 
+                minTrackingConfidence: 0.75 
+            });
+
+            handsAI.onResults((res) => {
+                // FAILURE BOUNDARY PROTECTION: Keeps the frame processing engine alive if any math error happens
+                try {
+                    if (monitor.width !== video.videoWidth) { monitor.width = video.videoWidth; monitor.height = video.videoHeight; }
+
+                    mCtx.clearRect(0, 0, monitor.width, monitor.height);
+                    mCtx.drawImage(res.image, 0, 0, monitor.width, monitor.height);
+
+                    let buildingDetectedFlag = false, demolitionDetectedFlag = false;
+                    rightCursor.visible = false; 
+                    leftCursor.visible = false;
+
+                    if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+                        for (let idx = 0; idx < res.multiHandLandmarks.length; idx++) {
+                            const marks = res.multiHandLandmarks[idx];
+                            
+                            // Prevent array type-errors if key fingers are missing or hidden from view
+                            if (!marks || marks.length < 21 || !marks[0] || !marks[4] || !marks[8] || !marks[9] || !marks[12] || !marks[20]) continue;
+                            
+                            const handType = res.multiHandedness[idx].label;
+
+                            // MIRROR INVERSION CORRECTION:
+                            // Front-facing webcams mirror inputs horizontally. We reverse the AI classification
+                            // ('Left' becomes 'Right') so your physical right hand correctly commands the right tool.
+                            const perceivedHand = (handType === 'Left') ? 'Right' : 'Left';
+
+                            // Real-Time 3D Field Aspect-Ratio Scalers
+                            const projectionBoundsX = 36;
+                            const projectionBoundsY = 24;
+
+                            // Map mirrored webcam inputs onto direct linear coordinates vectors
+                            const targetX = (1.0 - marks[8].x - 0.5) * projectionBoundsX;
+                            const targetY = (0.5 - marks[8].y) * projectionBoundsY + 6;
+                            
+                            // Exponential Z-depth calculations allows deep, continuous air painting mechanics
+                            const targetZ = marks[8].z * 48; 
+
+                            // SCALE-INVARIANT STABILIZATION LOOKUP:
+                            // Measures the physical metric space between wrist (0) and middle knuckle (9) to scale all gestures.
+                            // Hand distance changes will no longer disrupt pinch threshold configurations.
+                            const dWristX = marks[0].x - marks[9].x;
+                            const dWristY = marks[0].y - marks[9].y;
+                            const dWristZ = marks[0].z - marks[9].z;
+                            const dynamicHandScaleFactor = Math.sqrt(dWristX*dWristX + dWristY*dWristY + dWristZ*dWristZ) || 1.0;
+
+                            const fetchNormalizedFingerGap = (fingerTip, thumbTip = 4) => {
+                                if (!marks[fingerTip] || !marks[thumbTip]) return 999;
+                                let dX = marks[thumbTip].x - marks[fingerTip].x;
+                                let dY = marks[thumbTip].y - marks[fingerTip].y;
+                                let dZ = marks[thumbTip].z - marks[fingerTip].z;
+                                return Math.sqrt(dX*dX + dY*dY + dZ*dZ) / dynamicHandScaleFactor;
+                            };
+
+                            const indexPinchNormalizedGap  = fetchNormalizedFingerGap(8);
+                            const middlePinchNormalizedGap = fetchNormalizedFingerGap(12);
+                            const pinkyPinchNormalizedGap  = fetchNormalizedFingerGap(20);
+
+                            if (perceivedHand === 'Right') {
+                                // Low-Pass Linear Interpolation Filters completely kill vector noise jitter
+                                const smoothedX = THREE.MathUtils.lerp(rightCursor.position.x, targetX, 0.25);
+                                const smoothedY = THREE.MathUtils.lerp(rightCursor.position.y, targetY, 0.25);
+                                const smoothedZ = THREE.MathUtils.lerp(rightCursor.position.z, targetZ, 0.25);
+                                
+                                if (isFinite(smoothedX) && isFinite(smoothedY) && isFinite(smoothedZ)) {
+                                    rightCursor.position.set(smoothedX, smoothedY, smoothedZ);
+                                    rightCursor.visible = true;
+                                }
+
+                                mCtx.fillStyle = "#39ff14"; mCtx.beginPath(); mCtx.arc(marks[8].x * monitor.width, marks[8].y * monitor.height, 6, 0, 2*Math.PI); mCtx.fill();
+
+                                // Action 1: Index Pinch -> Continuous building structures generation
+                                if (indexPinchNormalizedGap < 0.28) {
+                                    buildingDetectedFlag = true;
+                                    const timestamp = performance.now();
+                                    if (timestamp - AppState.lastTimestamps.build > AppState.cooldownRates.build) {
+                                        executeVoxelConstructionOperation(rightCursor.position, AppState.shapes[AppState.activeShapeIndex], AppState.palette[AppState.activePaletteIndex]);
+                                        AppState.lastTimestamps.build = timestamp;
+                                    }
+                                }
+
+                                // Action 2: Middle Pinch -> Cycle Primitive Templates
+                                if (middlePinchNormalizedGap < 0.28) {
+                                    const timestamp = performance.now();
+                                    if (timestamp - AppState.lastTimestamps.shape > AppState.cooldownRates.shape) {
+                                        cycleActiveGeometryShapeType();
+                                        AppState.lastTimestamps.shape = timestamp;
+                                    }
+                                }
+
+                                // Action 3: Pinky Pinch -> Backstep previous action command history stack
+                                if (pinkyPinchNormalizedGap < 0.32) {
+                                    const timestamp = performance.now();
+                                    if (timestamp - AppState.lastTimestamps.history > AppState.cooldownRates.history) {
+                                        executeUndoOperationCommand();
+                                        AppState.lastTimestamps.history = timestamp;
+                                    }
+                                }
+                            } else if (perceivedHand === 'Left') {
+                                // Assess finger extension counts safely to check if fist is closed
+                                let activeExtensionsCount = 0;
+                                [8, 12, 16, 20].forEach(tip => {
+                                    if (marks[tip]) {
+                                        let dx = marks[tip].x - marks[0].x;
+                                        let dy = marks[tip].y - marks[0].y;
+                                        if (Math.sqrt(dx*dx + dy*dy) > 0.26) activeExtensionsCount++;
+                                    }
+                                });
+
+                                // Action 4: Fist Closed -> Hands-Free Air Drag Orbit Camera
+                                if (activeExtensionsCount === 0) {
+                                    leftCursor.visible = false;
+                                    controls.enabled = false; // Disable orbit controls momentarily to prevent matrix fighting
+                                    
+                                    const centerPalmMark = marks[9];
+                                    if (centerPalmMark) {
+                                        if (!AppState.cameraDragMemory.isActive) {
+                                            AppState.cameraDragMemory.isActive = true;
+                                            AppState.cameraDragMemory.baseHandX = centerPalmMark.x;
+                                            AppState.cameraDragMemory.baseHandY = centerPalmMark.y;
+                                            AppState.cameraDragMemory.baseCamPhi = controls.getPolarAngle();
+                                            AppState.cameraDragMemory.baseCamTheta = controls.getAzimuthalAngle();
+                                        } else {
+                                            let deltaHandX = centerPalmMark.x - AppState.cameraDragMemory.baseHandX;
+                                            let deltaHandY = centerPalmMark.y - AppState.cameraDragMemory.baseHandY;
+
+                                            let spherical = new THREE.Spherical().setFromVector3(camera.position);
+                                            let targetTheta = AppState.cameraDragMemory.baseCamTheta + deltaHandX * 4.5;
+                                            let targetPhi = Math.max(0.1, Math.min(Math.PI / 2, AppState.cameraDragMemory.baseCamPhi + deltaHandY * 3.5));
+                                            
+                                            if (isFinite(targetTheta) && isFinite(targetPhi)) {
+                                                spherical.theta = targetTheta;
+                                                spherical.phi = targetPhi;
+                                                camera.position.setFromSpherical(spherical);
+                                                camera.lookAt(0,0,0);
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    AppState.cameraDragMemory.isActive = false;
+                                    controls.enabled = true; // Safe restore standard interactions loops
+
+                                    const smoothedX = THREE.MathUtils.lerp(leftCursor.position.x, targetX, 0.25);
+                                    const smoothedY = THREE.MathUtils.lerp(leftCursor.position.y, targetY, 0.25);
+                                    const smoothedZ = THREE.MathUtils.lerp(leftCursor.position.z, targetZ, 0.25);
+                                    
+                                    if (isFinite(smoothedX) && isFinite(smoothedY) && isFinite(smoothedZ)) {
+                                        leftCursor.position.set(smoothedX, smoothedY, smoothedZ);
+                                        leftCursor.visible = true;
+                                    }
+
+                                    mCtx.fillStyle = "#ff3131"; mCtx.beginPath(); mCtx.arc(marks[8].x * monitor.width, marks[8].y * monitor.height, 6, 0, 2*Math.PI); mCtx.fill();
+
+                                    // Action 5: Left Index Pinch -> Demolish blocks continuously
+                                    if (indexPinchNormalizedGap < 0.28) {
+                                        demolitionDetectedFlag = true;
+                                        executeVoxelDemolitionOperation(leftCursor.position);
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    if (matchingCount > 10 && !state.ball.possessedBy) { 
-                        let targetCentroidX = (matchingPixelsSumX / matchingCount) / overlayCanvas.width;
-                        let targetCentroidY = (matchingPixelsSumY / matchingCount) / overlayCanvas.height;
-                        state.ball.x = state.ball.x * 0.3 + targetCentroidX * 0.7;
-                        state.ball.y = state.ball.y * 0.3 + targetCentroidY * 0.7;
+                    if (demolitionDetectedFlag) {
+                        DOM.status.innerText = "Atomizing Grid"; DOM.status.className = "status-badge status-erase";
+                    } else if (buildingDetectedFlag) {
+                        DOM.status.innerText = "Assembling Matrix"; DOM.status.className = "status-badge status-build";
+                    } else if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+                        DOM.status.innerText = "Studio Connected"; DOM.status.className = "status-badge status-ready";
+                    } else {
+                        DOM.status.innerText = "Scanning Space"; DOM.status.className = "status-badge status-scanning";
                     }
+                } catch (err) {
+                    // Safe catch prevents frame loops from unmounting or freezing the UI thread
+                    console.error("Defensive Tracker Boundary caught internal loop glitch: ", err);
                 }
-            }
-            requestAnimationFrame(processFrameRoutine);
-        }
-        requestAnimationFrame(processFrameRoutine);
-    }
+            });
 
-    function renderRefereeDiagnosticsOverlay() {
-        const canvas = document.getElementById('referee-overlay');
-        const ctx = canvas.getContext('2d');
-        if(!canvas.width) return;
+            // Initialize camera tracking wrapper instance
+            const cameraDeviceTrackerInstance = new Camera(video, {
+                onFrame: async () => { 
+                    try { await handsAI.send({ image: video }); } catch(e){} 
+                },
+                width: 640, height: 480
+            });
 
-        ctx.clearRect(0,0, canvas.width, canvas.height);
-        
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-        ctx.strokeStyle = '#ff3131';
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
-        ctx.lineTo(canvas.width, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
-        ctx.stroke();
-
-        ctx.fillStyle = '#39ff14';
-        ctx.beginPath();
-        ctx.arc(state.ball.x * canvas.width, state.ball.y * canvas.height, 14, 0, 2 * Math.PI);
-        ctx.fill();
-
-        for (let id in state.connectedPlayers) {
-            let p = state.connectedPlayers[id];
-            ctx.fillStyle = (state.ball.possessedBy === id) ? '#00e5ff' : '#ffffff';
-            ctx.beginPath();
-            ctx.arc(p.x * canvas.width, p.y * canvas.height, 16, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-    }
-
-    function setupFallbackRefereeControls() {
-        const canvas = document.getElementById('referee-overlay');
-        canvas.addEventListener('mousemove', (e) => {
-            if(!state.ball.possessedBy) {
-                const rect = canvas.getBoundingClientRect();
-                state.ball.x = (e.clientX - rect.left) / rect.width;
-                state.ball.y = (e.clientY - rect.top) / rect.height;
-            }
-        });
-    }
-
-    /**
-     * PLAYER MODULE (REVISED STABLE JOYSTICK MECHANICS)
-     */
-    let joystickState = { active: false, startX: 0, startY: 0, vx: 0, vy: 0 };
-    let swipeCaptureState = { startX: 0, startY: 0, startTime: 0 };
-
-    function setupPlayerNetworkListeners() {
-        state.connection = state.peer.connect(`HFB-ROOM-${state.roomCode}`);
-
-        state.connection.on('open', () => {
-            state.connection.send({ type: 'JOIN', name: state.username });
-            initializePlayerHardwareSystems();
-        });
-
-        state.connection.on('data', (data) => {
-            if (data.type === 'STATE_SYNC') { processServerStateSynchronization(data); }
-            if (data.type === 'BALL_FOUND_TRIGGER') { triggerLocalBallFoundEffects(); }
-            if (data.type === 'GOAL_CELEBRATION') { triggerLocalGoalAnimationEffects(); }
-        });
-
-        state.connection.on('close', () => { location.reload(); });
-    }
-
-    function initializePlayerHardwareSystems() {
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', handleDeviceOrientationTrackingData, true);
-        }
-        setupPlayerRenderingEngine();
-        setupTouchControllerJoystickInputControls();
-        setupGlobalSwipeGestureRecognitionEngine();
-    }
-
-    function handleDeviceOrientationTrackingData(event) {
-        // Mute gyro interactions entirely if the screen joystick is currently engaged
-        if (joystickState.active) return;
-
-        let tiltX = event.gamma; 
-        let tiltY = event.beta;  
-
-        if (tiltX !== null && tiltY !== null) {
-            let dx = (tiltX / 90) * 0.007;
-            let dy = ((tiltY - 35) / 90) * 0.007; 
-            updateLocalPlayerCoordinates(state.localPlayer.x + dx, state.localPlayer.y + dy);
-        }
-    }
-
-    function setupTouchControllerJoystickInputControls() {
-        const zone = document.getElementById('touch-joystick-zone');
-        const knob = document.getElementById('joystick-knob');
-
-        zone.addEventListener('touchstart', (e) => {
-            joystickState.active = true;
-            let t = e.touches[0];
-            joystickState.startX = t.clientX;
-            joystickState.startY = t.clientY;
-        }, {passive: true});
-
-        window.addEventListener('touchmove', (e) => {
-            if (!joystickState.active) return;
-            let t = e.touches[0];
-            
-            let dx = t.clientX - joystickState.startX;
-            let dy = t.clientY - joystickState.startY;
-            let dist = Math.sqrt(dx*dx + dy*dy);
-            
-            if(dist > 50) {
-                dx = (dx / dist) * 50;
-                dy = (dy / dist) * 50;
-            }
-
-            knob.style.transform = `translate(${dx}px, ${dy}px)`;
-
-            // Continuous frame velocity mapping indices
-            joystickState.vx = (dx / 50) * 0.015;
-            joystickState.vy = (dy / 50) * 0.015;
-        }, {passive: true});
-
-        window.addEventListener('touchend', () => {
-            joystickState.active = false;
-            joystickState.vx = 0;
-            joystickState.vy = 0;
-            knob.style.transform = 'translate(0px, 0px)';
-        });
-    }
-
-    function setupGlobalSwipeGestureRecognitionEngine() {
-        window.addEventListener('touchstart', (e) => {
-            if(e.target.closest('#touch-joystick-zone')) return;
-            let t = e.touches[0];
-            swipeCaptureState.startX = t.clientX;
-            swipeCaptureState.startY = t.clientY;
-            swipeCaptureState.startTime = performance.now();
-        }, {passive: true});
-
-        window.addEventListener('touchend', (e) => {
-            if(e.target.closest('#touch-joystick-zone')) return;
-            let t = e.changedTouches[0];
-            let dx = t.clientX - swipeCaptureState.startX;
-            let dy = t.clientY - swipeCaptureState.startY;
-            let dt = performance.now() - swipeCaptureState.startTime;
-
-            if (dt < 350 && Math.sqrt(dx*dx + dy*dy) > 50) {
-                if (state.connection && state.connection.open) {
-                    state.connection.send({
-                        type: 'ACTION_SWIPE',
-                        vx: dx / dt,
-                        vy: dy / dt
-                    });
-                }
-            }
-        });
-    }
-
-    function updateLocalPlayerCoordinates(targetX, targetY) {
-        state.localPlayer.x = Math.max(0, Math.min(1, targetX));
-        state.localPlayer.y = Math.max(0, Math.min(1, targetY));
-
-        if (state.localPlayer.y < RESTRICTED_ZONE_Y_LIMIT) {
-            if (!state.localPlayer.inRestrictedZone) {
-                state.localPlayer.inRestrictedZone = true;
-                document.getElementById('restricted-overlay').style.display = 'flex';
-                if(navigator.vibrate) navigator.vibrate([150, 100, 150]);
-            }
-        } else {
-            if (state.localPlayer.inRestrictedZone) {
-                state.localPlayer.inRestrictedZone = false;
-                document.getElementById('restricted-overlay').style.display = 'none';
-            }
-        }
-
-        document.getElementById('player-coords-hud').innerText = `X: ${state.localPlayer.x.toFixed(2)} | Y: ${state.localPlayer.y.toFixed(2)}`;
-
-        if (state.connection && state.connection.open && !state.localPlayer.inRestrictedZone) {
-            state.connection.send({
-                type: 'PLAYER_UPDATE',
-                x: state.localPlayer.x,
-                y: state.localPlayer.y
+            cameraDeviceTrackerInstance.start().then(() => {
+                DOM.loading.style.opacity = 0;
+                setTimeout(() => DOM.loading.style.display = 'none', 500);
+            }).catch(() => {
+                alert("Studio Error: Camera initialization dropped or security access permissions denied.");
             });
         }
-    }
 
-    function processServerStateSynchronization(packet) {
-        let matchBallState = packet.ball;
-        const statusHud = document.getElementById('player-status-hud');
-        const possessionHud = document.getElementById('player-possession-hud');
-        const swipeTip = document.getElementById('swipe-tip');
-
-        if (matchBallState.possessedBy) {
-            if (matchBallState.isLocalPlayerPossessed) {
-                statusHud.innerText = "YOU CONTROL THE BALL!";
-                statusHud.style.color = "#39ff14";
-                possessionHud.innerText = "POSSESSION ACTIVE";
-                possessionHud.style.borderColor = "#39ff14";
-                swipeTip.style.display = 'inline-block';
-                
-                state.ball.x = matchBallState.rawX;
-                state.ball.y = matchBallState.rawY;
-            } else {
-                statusHud.innerText = "BALL POSSESSED BY OPPONENT";
-                statusHud.style.color = "#ff3131";
-                possessionHud.innerText = "NO POSSESSION";
-                possessionHud.style.borderColor = '#555';
-                swipeTip.style.display = 'none';
-            }
-        } else {
-            statusHud.innerText = "SEARCHING PHYSICAL FIELD FOR BALL...";
-            statusHud.style.color = '#fff';
-            possessionHud.innerText = "NO POSSESSION";
-            possessionHud.style.borderColor = '#555';
-            swipeTip.style.display = 'none';
+        function runMainGraphicsLoopEngineCycle() {
+            requestAnimationFrame(runMainGraphicsLoopEngineCycle);
+            controls.update();
+            updateParticleSimulationsKinematicsFrame();
+            renderer.render(scene, camera);
         }
-        state.connectedPlayers = packet.players;
-    }
 
-    function triggerLocalBallFoundEffects() {
-        if(navigator.vibrate) navigator.vibrate(300);
-        const fx = document.getElementById('ball-found-effect');
-        fx.style.display = 'flex';
-        setTimeout(() => fx.style.display = 'none', 1200);
-    }
-
-    function triggerLocalGoalAnimationEffects() {
-        if(navigator.vibrate) navigator.vibrate([100, 50, 300]);
-        const fx = document.getElementById('goal-effect');
-        fx.style.display = 'flex';
-        setTimeout(() => fx.style.display = 'none', 2500);
-    }
-
-    function setupPlayerRenderingEngine() {
-        const canvas = document.getElementById('player-rendering-canvas');
-        const ctx = canvas.getContext('2d');
-
-        function drawLoopFrame() {
-            if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            }
-
-            // Engine Continuous Velocity Frame Updates
-            if (joystickState.active && !state.localPlayer.inRestrictedZone) {
-                updateLocalPlayerCoordinates(state.localPlayer.x + joystickState.vx, state.localPlayer.y + joystickState.vy);
-            }
-
-            ctx.clearRect(0,0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(canvas.width * 0.25, 0, canvas.width * 0.5, canvas.height * 0.18);
-            ctx.strokeRect(canvas.width * 0.25, canvas.height * 0.82, canvas.width * 0.5, canvas.height * 0.18);
-            
-            ctx.beginPath();
-            ctx.arc(canvas.width/2, canvas.height/2, canvas.width * 0.15, 0, 2*Math.PI);
-            ctx.stroke();
-
-            ctx.fillStyle = 'rgba(255, 49, 49, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
-            ctx.strokeStyle = 'rgba(255, 49, 49, 0.4)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
-            ctx.lineTo(canvas.width, canvas.height * RESTRICTED_ZONE_Y_LIMIT);
-            ctx.stroke();
-
-            if (Array.isArray(state.connectedPlayers)) {
-                state.connectedPlayers.forEach(p => {
-                    if (p.id === state.peer.id) return; 
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-                    ctx.beginPath();
-                    ctx.arc(p.x * canvas.width, p.y * canvas.height, 14, 0, 2 * Math.PI);
-                    ctx.fill();
-                });
-            }
-
-            const localPixelX = state.localPlayer.x * canvas.width;
-            const localPixelY = state.localPlayer.y * canvas.height;
-
-            ctx.fillStyle = "#00e5ff";
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "#00e5ff";
-            ctx.beginPath();
-            ctx.arc(localPixelX, localPixelY, 18, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.shadowBlur = 0; 
-
-            if (state.connection && state.connection.open && state.ball.possessedBy === state.peer.id) {
-                ctx.fillStyle = '#ffffff';
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2;
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(localPixelX, localPixelY - 25, 10, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-            }
-
-            requestAnimationFrame(drawLoopFrame);
-        }
-        requestAnimationFrame(drawLoopFrame);
-    }
-</script>
+        window.addEventListener('DOMContentLoaded', () => {
+            initStudioGraphicsContext();
+            initMediaPipeComputerVisionModule();
+            runMainGraphicsLoopEngineCycle();
+        });
+    </script>
 </body>
 </html>
